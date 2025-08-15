@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电子族谱使用教程</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #409eff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #409eff;
+            margin-top: 30px;
+        }
+        p {
+            line-height: 1.6;
+            color: #555;
+        }
+        ul, ol {
+            padding-left: 20px;
+            color: #555;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .step {
+            margin-bottom: 25px;
+        }
+        .btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            padding: 12px 20px;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #337ecc;
+        }
+        .screenshot {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .note {
+            background-color: #fffbe6;
+            border-left: 4px solid #ffe58f;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="tutorial-content">
+        <h1>电子族谱使用教程</h1>
+        
+        <div class="step">
+            <h2>1. 简介</h2>
+            <p>电子族谱是一个基于浏览器的族谱管理工具，可以帮助您创建、编辑和保存家族树。它支持添加多媒体内容（图片、视频、音频）到族谱成员信息中，并可以将整个族谱导出为ZIP文件进行备份或分享。</p>
+        </div>
+        
+        <div class="step">
+            <h2>2. 开始使用</h2>
+            <h3>2.1 添加根节点</h3>
+            <ol>
+                <li>打开电子族谱网页</li>
+                <li>点击顶部的<strong>添加根节点</strong>按钮</li>
+                <li>在弹出的对话框中填写姓名、性别、配偶姓名、民族、出生日期和死亡日期等信息</li>
+                <li>点击<strong>确定</strong>按钮完成添加</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <h2>3. 管理族谱节点</h2>
+            <h3>3.1 添加父节点</h3>
+            <ol>
+                <li>右键点击要添加父节点的成员</li>
+                <li>在右键菜单中选择<strong>添加父节点</strong></li>
+                <li>填写相关信息后点击<strong>确定</strong></li>
+            </ol>
+            
+            <h3>3.2 添加子节点</h3>
+            <ol>
+                <li>左键点击或右键点击要添加子节点的成员</li>
+                <li>点击<strong>添加子节点</strong>按钮或在右键菜单中选择<strong>添加子节点</strong></li>
+                <li>填写相关信息后点击<strong>确定</strong></li>
+            </ol>
+            
+            <h3>3.3 编辑节点</h3>
+            <ol>
+                <li>左键点击或右键点击要编辑的成员</li>
+                <li>点击<strong>编辑信息</strong>按钮或在右键菜单中选择<strong>编辑节点</strong></li>
+                <li>修改信息后点击<strong>确定</strong></li>
+            </ol>
+            
+            <h3>3.4 删除节点</h3>
+            <ol>
+                <li>右键点击要删除的成员</li>
+                <li>在右键菜单中选择<strong>删除节点</strong></li>
+                <li>确认删除操作（注意：删除节点会同时删除其所有后代）</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <h2>4. 管理成员信息</h2>
+            <h3>4.1 添加头像</h3>
+            <ol>
+                <li>左键点击要添加头像的成员</li>
+                <li>在右侧信息面板中点击<strong>上传头像</strong>按钮</li>
+                <li>选择图片文件后点击<strong>打开</strong></li>
+            </ol>
+            
+            <h3>4.2 添加多媒体内容</h3>
+            <ol>
+                <li>左键点击成员，在右侧信息面板中找到<strong>生平介绍</strong>、<strong>身后事</strong>或<strong>墓地</strong>部分</li>
+                <li>点击<strong>添加条目</strong>按钮创建新条目</li>
+                <li>在条目中填写标题和文字内容</li>
+                <li>点击<strong>添加图片/音视频</strong>按钮上传多媒体文件</li>
+            </ol>
+            
+            <div class="note">
+                <p><strong>注意：</strong>支持的图片格式包括 JPG、PNG、GIF 等；支持的视频格式包括 MP4、WebM 等；支持的音频格式包括 MP3、WAV 等。</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <h2>5. 保存与导出</h2>
+            <h3>5.1 保存族谱</h3>
+            <ol>
+                <li>点击顶部的<strong>保存</strong>按钮</li>
+                <li>族谱数据将保存到浏览器的本地存储中</li>
+            </ol>
+            
+            <h3>5.2 导出族谱</h3>
+            <ol>
+                <li>点击顶部的<strong>导出</strong>按钮</li>
+                <li>系统会自动生成包含族谱数据和多媒体文件的 ZIP 文件</li>
+                <li>浏览器会自动下载该 ZIP 文件</li>
+            </ol>
+            
+            <h3>5.3 导入族谱</h3>
+            <ol>
+                <li>点击顶部的<strong>导入</strong>按钮</li>
+                <li>选择之前导出的 ZIP 文件</li>
+                <li>系统会自动加载族谱数据和多媒体文件</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <h2>6. 其他功能</h2>
+            <h3>6.1 编辑代数信息</h3>
+            <p>在族谱图中，每一代的标识文字（如"第1代"）可以直接点击进行编辑。</p>
+            
+            <h3>6.2 清除族谱</h3>
+            <p>点击顶部的<strong>清除族谱</strong>按钮可以删除所有族谱数据，请谨慎操作。</p>
+        </div>
+        
+        <div class="step">
+            <h2>7. 注意事项</h2>
+            <ul>
+                <li>族谱数据保存在浏览器本地存储中，清除浏览器数据可能会导致数据丢失</li>
+                <li>建议定期使用导出功能备份族谱数据</li>
+                <li>导入功能仅支持本系统导出的 ZIP 文件</li>
+                <li>多媒体文件以 Base64 格式保存在族谱数据中，过多的多媒体内容可能会导致文件体积较大</li>
+            </ul>
+        </div>
+    </div>
+    
+    <button class="btn" onclick="generatePDF()">生成PDF教程</button>
+
+    <script>
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            
+            const content = document.getElementById('tutorial-content');
+            
+            html2canvas(content).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                // Add new pages if content is longer than one page
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                pdf.save('电子族谱使用教程.pdf');
+            });
+        }
+    </script>
+</body>
+</html>
