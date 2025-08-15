@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电子族谱</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            position: relative; /* 为登录按钮定位 */
+        }
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        /* 右上角登录按钮 */
+        .login-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 12px;
+            background-color: #FFA500; /* 橙色 */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .login-btn:hover {
+            background-color: #e69500; /* 深一点的橙色 */
+        }
+        .buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 0 20px 20px 20px;
+            background-color: #fff;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #409eff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #337ecc;
+        }
+        .btn-success {
+            background-color: #67c23a;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #5daf34;
+        }
+        .btn-warning {
+            background-color: #e6a23c;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #d19236;
+        }
+        .btn-danger {
+            background-color: #f56c6c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #d9534f;
+        }
+        .btn-info {
+            background-color: #17a2b8; /* 蓝色 */
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #138496;
+        }
+        .container {
+            display: flex;
+            height: calc(100vh - 120px); /* 调整高度以适应头部变化 */
+            padding: 20px;
+            gap: 20px;
+        }
+        .tree-container {
+            flex: 3;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+        }
+        .info-container {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto; /* 信息面板内容过多时可滚动 */
+        }
+        .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #409eff;
+            padding-bottom: 8px;
+        }
+        .info-content {
+            line-height: 1.6;
+        }
+        .info-item {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .info-item:last-child {
+             border-bottom: none;
+             margin-bottom: 0;
+             padding-bottom: 0;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 100px; /* 统一标签宽度 */
+        }
+        .info-value {
+            color: #333;
+        }
+        /* 头像样式 - 方形 */
+        .avatar-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 120px;
+            height: 120px;
+            object-fit: cover; /* 保持图片比例并填充容器 */
+            border: 3px solid #409eff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            background-color: #e0e0e0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: #999;
+            border: 2px dashed #ccc;
+        }
+        /* 多媒体内容样式 */
+        .media-container {
+            margin-top: 5px;
+        }
+        .media-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 5px;
+            border-radius: 4px;
+        }
+        .video-container {
+             position: relative;
+             padding-bottom: 56.25%; /* 16:9 宽高比 */
+             height: 0;
+             overflow: hidden;
+             background-color: #000;
+             border-radius: 4px;
+             margin-top: 5px;
+        }
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        /* 音频容器样式 */
+        .audio-container {
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        /* 墓地地图占位符 */
+        .map-placeholder {
+            width: 100%;
+            height: 150px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .node {
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            min-width: 80px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: absolute; /* 关键：使用绝对定位 */
+        }
+        .node.male {
+            background-color: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        .node.female {
+            background-color: #fce4ec;
+            border: 2px solid #e91e63;
+        }
+        /* --- 修改：选中节点的边框颜色 --- */
+        .node.selected {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 3px solid #FFA500 !important; /* 橙色边框 */
+            z-index: 10; /* 确保选中的节点在最上层 */
+        }
+        /* --- 结束修改 --- */
+        .node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .spouse-name {
+            font-size: 11px;
+            margin-top: 3px;
+            opacity: 0.8;
+        }
+        .no-data {
+            text-align: center;
+            color: #999;
+            font-size: 16px;
+            padding: 40px;
+        }
+        .add-node-form {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        /* Context menu styles */
+        .context-menu {
+            display: none;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1001;
+            min-width: 150px;
+        }
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .context-menu-item:hover {
+            background-color: #f5f5f5;
+        }
+        .context-menu-divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 4px 0;
+        }
+        /* 连接线样式 */
+        .connector-line {
+            position: absolute;
+            background-color: #999;
+        }
+        .vertical-line {
+            width: 2px;
+        }
+        .horizontal-line {
+            height: 2px;
+        }
+        /* 隐藏的文件输入框 */
+        .file-input {
+            display: none;
+        }
+        /* 单个媒体项容器 */
+        .media-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #fafafa;
+        }
+        .media-item:last-child {
+            margin-bottom: 0;
+        }
+        .media-item-text {
+            white-space: pre-wrap; /* 保留换行和空格 */
+        }
+        /* 头像操作按钮 */
+        .avatar-actions {
+            margin-top: 10px;
+        }
+        .avatar-btn {
+            padding: 5px 10px;
+            margin: 0 5px;
+            font-size: 12px;
+        }
+        /* 多媒体管理按钮 */
+        .media-actions {
+            margin-top: 8px;
+        }
+        .media-btn {
+            padding: 4px 8px;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        /* 条目容器 */
+        .entry-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+        }
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .entry-title-input {
+            font-weight: bold;
+            color: #555;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px;
+            width: 70%;
+        }
+        .entry-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .entry-content {
+            margin-top: 8px;
+        }
+        .entry-text-input {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .add-entry-btn {
+            margin-top: 10px;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .entry-media-preview {
+            margin-top: 8px;
+        }
+        /* 空间按钮样式 */
+        .space-btn {
+            margin-top: 5px;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        /* 导入导出提示 */
+        .import-hint {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #333;
+        }
+        .import-hint strong {
+            color: #0066cc;
+        }
+        /* 代数框样式 */
+        .generation-box {
+            position: absolute;
+            left: 20px; /* 初始位置，会被calculateGenerationsLayout动态调整 */
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 6px;
+            background-color: #e0f7fa;
+            border: 2px solid #2196f3;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            min-width: 80px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 5;
+        }
+        .generation-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .generation-box-editing {
+            background-color: #fff;
+            border: 2px solid #2196f3;
+        }
+        .generation-box input[type="text"] {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            text-align: center;
+        }
+        /* 代数连接线 */
+        .generation-line {
+            position: absolute;
+            background-color: #2196f3;
+            width: 2px;
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>族谱</h1>
+        <!-- 右上角登录按钮 -->
+        <button class="login-btn" onclick="alert('登录功能待实现')">登录</button>
+    </div>
+    <div class="buttons">
+        <button class="btn btn-success" onclick="saveFamilyTree()">保存</button>
+        <button class="btn btn-warning" onclick="importFamilyTree()">导入</button>
+        <button class="btn btn-primary" onclick="exportFamilyTree()">导出</button>
+        <button class="btn btn-primary" onclick="showAddRootModal()">添加根节点</button>
+        <button class="btn btn-danger" onclick="clearFamilyTree()">清除族谱</button>
+    </div>
+    <div class="container">
+        <div class="tree-container">
+            <div id="familyTree">
+                <div class="no-data" id="noData">暂无族谱数据，请添加根节点</div>
+                <div id="treeContent"></div>
+            </div>
+        </div>
+        <div class="info-container">
+            <div class="info-title">人员信息</div>
+            <div class="info-content" id="personInfo">
+                <div class="no-data">请选择族谱中的人员查看详细信息</div>
+            </div>
+        </div>
+    </div>
+    <!-- 右键菜单 -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="showAddParentModal()">添加父节点</div>
+        <div class="context-menu-item" onclick="showAddChildModal()">添加子节点</div>
+        <div class="context-menu-item" onclick="showEditModal()">编辑节点</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="deleteNode()" style="color: #f56c6c;">删除节点</div>
+    </div>
+    <!-- 添加根节点模态框 (精简版) -->
+    <div id="addRootModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">添加根节点</div>
+                <span class="close" onclick="closeModal('addRootModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="rootName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>性别：</label>
+                    <select id="rootGender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label>配偶姓名：</label>
+                    <input type="text" id="rootSpouseName" placeholder="请输入配偶姓名">
+                </div>
+                <div class="form-group">
+                    <label>民族：</label>
+                    <input type="text" id="rootEthnicity" placeholder="请输入民族">
+                </div>
+                <div class="form-group">
+                    <label>出生日期：</label>
+                    <input type="date" id="rootBirthDate">
+                </div>
+                <div class="form-group">
+                    <label>死亡日期：</label>
+                    <input type="date" id="rootDeathDate">
+                </div>
+                 <!-- 移除生平介绍、身后事、墓地等字段 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addRootModal')">取消</button>
+                <button class="btn btn-primary" onclick="addRootNode()">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加父节点模态框 (精简版) -->
+    <div id="addParentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">添加父节点</div>
+                <span class="close" onclick="closeModal('addParentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="parentName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>性别：</label>
+                    <select id="parentGender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label>配偶姓名：</label>
+                    <input type="text" id="parentSpouseName" placeholder="请输入配偶姓名">
+                </div>
+                <div class="form-group">
+                    <label>民族：</label>
+                    <input type="text" id="parentEthnicity" placeholder="请输入民族">
+                </div>
+                <div class="form-group">
+                    <label>出生日期：</label>
+                    <input type="date" id="parentBirthDate">
+                </div>
+                <div class="form-group">
+                    <label>死亡日期：</label>
+                    <input type="date" id="parentDeathDate">
+                </div>
+                <!-- 移除生平介绍、身后事、墓地等字段 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addParentModal')">取消</button>
+                <button class="btn btn-primary" onclick="addParentNode()">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加子节点模态框 (精简版) -->
+    <div id="addChildModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">添加子节点</div>
+                <span class="close" onclick="closeModal('addChildModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="childName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>性别：</label>
+                    <select id="childGender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label>配偶姓名：</label>
+                    <input type="text" id="childSpouseName" placeholder="请输入配偶姓名">
+                </div>
+                <div class="form-group">
+                    <label>民族：</label>
+                    <input type="text" id="childEthnicity" placeholder="请输入民族">
+                </div>
+                <div class="form-group">
+                    <label>出生日期：</label>
+                    <input type="date" id="childBirthDate">
+                </div>
+                <div class="form-group">
+                    <label>死亡日期：</label>
+                    <input type="date" id="childDeathDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addChildModal')">取消</button>
+                <button class="btn btn-primary" onclick="addChildNode()">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加配偶模态框 (完整版) -->
+    <div id="addSpouseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">添加配偶</div>
+                <span class="close" onclick="closeModal('addSpouseModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="spouseName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>性别：</label>
+                    <select id="spouseGender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>民族：</label>
+                    <input type="text" id="spouseEthnicity" placeholder="请输入民族">
+                </div>
+                <div class="form-group">
+                    <label>出生日期：</label>
+                    <input type="date" id="spouseBirthDate">
+                </div>
+                <div class="form-group">
+                    <label>死亡日期：</label>
+                    <input type="date" id="spouseDeathDate">
+                </div>
+                <div class="form-group">
+                    <label>生平介绍：</label>
+                    <textarea id="spouseBiography" placeholder="请输入生平介绍"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>身后事：</label>
+                    <textarea id="spouseAfterlife" placeholder="请输入身后事"></textarea>
+                </div>
+                 <div class="form-group">
+                    <label>墓地：</label>
+                    <input type="text" id="spouseGraveLocation" placeholder="请输入墓地信息">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addSpouseModal')">取消</button>
+                <button class="btn btn-primary" onclick="addSpouseNode()">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 编辑节点模态框 (精简版) -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑节点</div>
+                <span class="close" onclick="closeModal('editModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名：</label>
+                    <input type="text" id="editName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>性别：</label>
+                    <select id="editGender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label>配偶姓名：</label>
+                    <input type="text" id="editSpouseName" placeholder="请输入配偶姓名">
+                </div>
+                <div class="form-group">
+                    <label>民族：</label>
+                    <input type="text" id="editEthnicity" placeholder="请输入民族">
+                </div>
+                <div class="form-group">
+                    <label>出生日期：</label>
+                    <input type="date" id="editBirthDate">
+                </div>
+                <div class="form-group">
+                    <label>死亡日期：</label>
+                    <input type="date" id="editDeathDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                <button class="btn btn-primary" onclick="editNode()">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 隐藏的文件输入框用于导入 -->
+    <input type="file" id="fileInput" class="file-input" accept=".zip" onchange="handleFileImport(event)">
+    <!-- 隐藏的文件输入框用于上传头像 -->
+    <input type="file" id="avatarInput" class="file-input" accept="image/*" onchange="handleAvatarUpload(event)">
+    <!-- 隐藏的文件输入框用于上传多媒体文件 -->
+    <input type="file" id="mediaInput" class="file-input" accept="image/*, video/*, audio/*" onchange="handleMediaUpload(event)">
+    <script>
+        // 族谱数据结构
+        let familyTree = [];
+        let selectedPerson = null;
+        let contextMenuPerson = null;
+        let nextId = 1;
+        let currentMediaField = null; // 用于标识当前正在操作的多媒体字段
+        let currentEntryId = null; // 用于标识当前正在操作的条目ID
+        let currentMediaAction = null; // 用于标识当前媒体操作类型 ('add', 'replace')
+        let currentMediaItemId = null; // 用于标识当前正在替换的媒体项ID
+        // 节点和连线的尺寸常量
+        const NODE_WIDTH = 100;
+        const NODE_HEIGHT = 60;
+        const LEVEL_HEIGHT = 120; // 层级之间的垂直距离
+        const SIBLING_SPACING = 30; // 兄弟节点之间的水平距离
+        // 代数信息存储
+        let generationInfo = {}; // { depth: { id: uniqueId, text: "第N代" } }
+        // 初始化
+        function init() {
+            loadFamilyTree();
+            renderFamilyTree();
+            // 添加全局点击事件来关闭右键菜单
+            document.addEventListener('click', function() {
+                document.getElementById('contextMenu').style.display = 'none';
+            });
+        }
+        // 加载族谱数据
+        function loadFamilyTree() {
+            // 这里可以替换为从服务器加载数据
+            // 暂时使用空数组
+        }
+        // 计算树的布局 (优化版 - 改进连线)
+        function calculateLayout() {
+            if (familyTree.length === 0) return { nodes: [], lines: [] };
+            // 构建 ID 到节点的映射，方便查找
+            const nodeMap = {};
+            familyTree.forEach(person => {
+                nodeMap[person.id] = person;
+                // 初始化坐标和子节点数组
+                person.x = 0;
+                person.y = 0;
+                person.childrenNodes = [];
+            });
+            // 建立父子关系
+            familyTree.forEach(person => {
+                if (person.parentId && nodeMap[person.parentId]) {
+                    nodeMap[person.parentId].childrenNodes.push(person);
+                }
+            });
+            // 找到根节点（没有父节点的节点）
+            const rootNodes = familyTree.filter(person => !person.parentId);
+            // 用于存储所有节点和连线
+            const nodesWithCoords = [];
+            const lines = []; // 存储连线信息的对象数组
+            // 递归函数：计算以 node 为根的子树的布局
+            // 返回该子树的总宽度
+            function layoutSubtree(node, depth, startX) {
+                node.y = depth * LEVEL_HEIGHT;
+                // 计算所有子孙节点的总宽度
+                let totalWidth = 0;
+                if (node.childrenNodes.length > 0) {
+                    // 递归计算每个子节点的子树
+                    let currentX = startX;
+                    node.childrenNodes.forEach((child, index) => {
+                        const childWidth = layoutSubtree(child, depth + 1, currentX);
+                        totalWidth += childWidth;
+                        currentX += childWidth + SIBLING_SPACING;
+                    });
+                    totalWidth += SIBLING_SPACING * (node.childrenNodes.length - 1);
+                    // --- 新增/修改的连线计算逻辑 ---
+                    // 1. 计算父节点下方的连接点 (垂直线末端)
+                    const parentConnectorX = startX + (totalWidth - NODE_WIDTH) / 2 + NODE_WIDTH / 2; // 父节点水平中心
+                    const parentConnectorY = node.y + NODE_HEIGHT; // 父节点底部
+                    // 2. 计算第一个和最后一个子节点的中心 X 坐标，用于确定水平线范围
+                    const firstChildX = node.childrenNodes[0].x + NODE_WIDTH / 2;
+                    const lastChildX = node.childrenNodes[node.childrenNodes.length - 1].x + NODE_WIDTH / 2;
+                    // 3. 添加父节点到连接点的垂直线
+                    lines.push({
+                        type: 'vertical',
+                        x: parentConnectorX,
+                        y1: parentConnectorY, // 起点：父节点底部
+                        y2: parentConnectorY + LEVEL_HEIGHT / 3 // 终点：向下延伸一段距离
+                    });
+                    // 4. 添加连接点到各子节点的连线 (垂直线 + 水平线)
+                    const connectorLineY = parentConnectorY + LEVEL_HEIGHT / 3; // 水平线所在的 Y 坐标
+                    // 添加水平线
+                    lines.push({
+                        type: 'horizontal',
+                        y: connectorLineY,
+                        x1: firstChildX,
+                        x2: lastChildX
+                    });
+                    // 为每个子节点添加从水平线到子节点的垂直短线
+                    node.childrenNodes.forEach(child => {
+                        const childConnectorX = child.x + NODE_WIDTH / 2;
+                        lines.push({
+                            type: 'vertical',
+                            x: childConnectorX,
+                            y1: connectorLineY, // 起点：水平线
+                            y2: child.y          // 终点：子节点顶部
+                        });
+                    });
+                } else {
+                    // 叶子节点宽度就是自身
+                    totalWidth = NODE_WIDTH;
+                }
+                // 节点的 x 坐标是所有子节点的中心 (或者自身中心)
+                node.x = startX + (totalWidth - NODE_WIDTH) / 2;
+                nodesWithCoords.push(node);
+                return totalWidth;
+            }
+            // 从根节点开始布局
+            let currentX = 0;
+            rootNodes.forEach(root => {
+                const rootWidth = layoutSubtree(root, 0, currentX);
+                currentX += rootWidth + 50; // 根节点之间的间距
+            });
+            return { nodes: nodesWithCoords, lines: lines };
+        }
+        // 计算代数布局
+        function calculateGenerationsLayout(nodesWithCoords) {
+            const generations = {}; // { depth: [nodes] }
+            // 按深度分组节点
+            nodesWithCoords.forEach(node => {
+                const depth = Math.round(node.y / LEVEL_HEIGHT);
+                if (!generations[depth]) {
+                    generations[depth] = [];
+                }
+                generations[depth].push(node);
+            });
+            // 计算每一代的Y坐标范围
+            const generationLayout = {}; // { depth: { minY, maxY, nodes } }
+            Object.keys(generations).forEach(depth => {
+                const nodes = generations[depth];
+                const minY = Math.min(...nodes.map(n => n.y));
+                const maxY = Math.max(...nodes.map(n => n.y + NODE_HEIGHT));
+                generationLayout[depth] = { minY, maxY, nodes };
+            });
+            return generationLayout;
+        }
+        // 渲染族谱 (优化版 - 使用新的连线数据)
+        function renderFamilyTree() {
+            const treeContent = document.getElementById('treeContent');
+            const noData = document.getElementById('noData');
+            if (familyTree.length === 0) {
+                noData.style.display = 'block';
+                treeContent.innerHTML = '';
+                return;
+            }
+            noData.style.display = 'none';
+            // 计算布局
+            const layout = calculateLayout();
+            const nodesWithCoords = layout.nodes;
+            const lines = layout.lines;
+            
+            // 计算代数布局
+            const generationLayout = calculateGenerationsLayout(nodesWithCoords);
+            
+            // 清空容器
+            treeContent.innerHTML = '';
+            
+            // 绘制代数框和连接线
+            Object.keys(generationLayout).forEach(depth => {
+                const genData = generationLayout[depth];
+                const minY = genData.minY;
+                const maxY = genData.maxY;
+                
+                // 创建代数框
+                const generationBox = document.createElement('div');
+                generationBox.className = 'generation-box';
+                generationBox.style.top = `${minY + (maxY - minY) / 2 - 25}px`; // 垂直居中
+                generationBox.setAttribute('data-depth', depth);
+                
+                // 获取或创建代数信息
+                if (!generationInfo[depth]) {
+                    generationInfo[depth] = {
+                        id: generateId(),
+                        text: `第${parseInt(depth) + 1}代`
+                    };
+                }
+                
+                generationBox.innerHTML = `<span class="generation-text">${generationInfo[depth].text}</span>`;
+                
+                // 添加点击编辑事件
+                generationBox.onclick = function(e) {
+                    e.stopPropagation();
+                    editGenerationText(depth, generationBox);
+                };
+                
+                treeContent.appendChild(generationBox);
+                
+                // 绘制代数连接线 (垂直线)
+                const line = document.createElement('div');
+                line.className = 'generation-line';
+                line.style.left = '120px'; // 代数框右侧位置
+                line.style.top = `${minY}px`;
+                line.style.height = `${maxY - minY}px`;
+                treeContent.appendChild(line);
+            });
+            
+            // 绘制连接线 (族谱线)
+            lines.forEach(line => {
+                const lineElement = document.createElement('div');
+                lineElement.className = 'connector-line';
+                if (line.type === 'vertical') {
+                    lineElement.classList.add('vertical-line');
+                    // 右移族谱线以避免与代数框重叠
+                    lineElement.style.left = `${line.x + 150}px`;
+                    lineElement.style.top = `${line.y1}px`;
+                    lineElement.style.height = `${Math.abs(line.y2 - line.y1)}px`;
+                } else if (line.type === 'horizontal') {
+                    lineElement.classList.add('horizontal-line');
+                    lineElement.style.top = `${line.y}px`;
+                    // 右移族谱线以避免与代数框重叠
+                    lineElement.style.left = `${line.x1 + 150}px`;
+                    lineElement.style.width = `${Math.abs(line.x2 - line.x1)}px`;
+                }
+                treeContent.appendChild(lineElement);
+            });
+            
+            // 渲染节点 (右移以避免与代数框重叠)
+            nodesWithCoords.forEach(person => {
+                const node = createNodeElement(person);
+                node.style.left = `${person.x + 150}px`; // 右移150px
+                node.style.top = `${person.y}px`;
+                treeContent.appendChild(node);
+            });
+        }
+        // 编辑代数文本
+        function editGenerationText(depth, boxElement) {
+            const textElement = boxElement.querySelector('.generation-text');
+            const currentText = generationInfo[depth].text;
+            
+            // 创建输入框
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            
+            // 清空并添加输入框
+            boxElement.innerHTML = '';
+            boxElement.appendChild(input);
+            boxElement.classList.add('generation-box-editing');
+            
+            // 聚焦并全选
+            input.focus();
+            input.select();
+            
+            // 处理完成编辑
+            function finishEdit() {
+                const newText = input.value.trim() || `第${parseInt(depth) + 1}代`;
+                generationInfo[depth].text = newText;
+                
+                // 更新显示
+                boxElement.innerHTML = `<span class="generation-text">${newText}</span>`;
+                boxElement.classList.remove('generation-box-editing');
+                
+                // 重新绑定点击事件
+                boxElement.onclick = function(e) {
+                    e.stopPropagation();
+                    editGenerationText(depth, boxElement);
+                };
+            }
+            
+            // 监听回车和失焦
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    finishEdit();
+                }
+            });
+            
+            input.addEventListener('blur', finishEdit);
+        }
+        // 创建节点元素
+        function createNodeElement(person) {
+            const node = document.createElement('div');
+            node.className = `node ${person.gender}`;
+            let nodeContent = `<div>${person.name}</div>`;
+            nodeContent += `<div style="font-size: 12px; margin-top: 4px;">${person.gender === 'male' ? '男' : '女'}</div>`;
+            if (person.spouseName) {
+                 nodeContent += `<div class="spouse-name">(${person.spouseName})</div>`;
+            }
+            node.innerHTML = nodeContent;
+            // 左键点击选择节点
+            node.onclick = (e) => {
+                e.stopPropagation();
+                selectPerson(person);
+            };
+            // 右键点击也选择节点并显示菜单
+            node.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                selectPerson(person);
+                showContextMenu(e, person);
+            };
+            return node;
+        }
+        // 显示右键菜单
+        function showContextMenu(event, person) {
+            contextMenuPerson = person;
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            contextMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            }, { once: true });
+        }
+        // 选择人员
+        function selectPerson(person) {
+            const prevSelected = document.querySelector('.node.selected');
+            if (prevSelected) {
+                prevSelected.classList.remove('selected');
+            }
+            const allNodes = document.querySelectorAll('.node');
+            allNodes.forEach(node => {
+                const nodeText = node.textContent.trim();
+                if (nodeText.includes(person.name)) {
+                     node.classList.add('selected');
+                }
+            });
+            selectedPerson = person;
+            renderPersonInfo(person);
+        }
+        // 渲染人员信息 (包含多媒体管理)
+        function renderPersonInfo(person) {
+            const infoContent = document.getElementById('personInfo');
+            const birthDate = person.birthDate ? new Date(person.birthDate).toLocaleDateString('zh-CN') : '未填写';
+            const deathDate = person.deathDate ? new Date(person.deathDate).toLocaleDateString('zh-CN') : '未填写';
+            const avatarHtml = person.avatarUrl ?
+                `<img src="${person.avatarUrl}" alt="头像" class="avatar" id="personAvatar">` :
+                `<div class="avatar-placeholder" id="personAvatarPlaceholder">${person.gender === 'male' ? '👨' : '👩'}</div>`;
+            // 生成多媒体HTML
+            const biographyHtml = generateEntryHtml(person.biography, 'biography', '生平介绍');
+            const afterlifeHtml = generateEntryHtml(person.afterlife, 'afterlife', '身后事');
+            const graveHtml = generateEntryHtml(person.graveLocation, 'graveLocation', '墓地');
+            infoContent.innerHTML = `
+                <div class="avatar-container">
+                    ${avatarHtml}
+                    <div class="avatar-actions">
+                        <button class="btn btn-primary btn-small avatar-btn" onclick="triggerAvatarUpload()">上传头像</button>
+                        ${person.avatarUrl ? `<button class="btn btn-warning btn-small avatar-btn" onclick="replaceAvatar()">替换</button>
+                        <button class="btn btn-danger btn-small avatar-btn" onclick="deleteAvatar()">删除</button>` : ''}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">姓名:</span>
+                    <span class="info-value">${person.name}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">性别:</span>
+                    <span class="info-value">${person.gender === 'male' ? '男' : '女'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">配偶:</span>
+                    <span class="info-value">${person.spouseName || '未填写'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">民族:</span>
+                    <span class="info-value">${person.ethnicity || '未填写'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">出生日期:</span>
+                    <span class="info-value">${birthDate}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">去世日期:</span>
+                    <span class="info-value">${deathDate}</span>
+                </div>
+                <div class="info-item">
+                    <div><span class="info-label">生平介绍:</span></div>
+                    <div class="media-container">
+                        ${biographyHtml}
+                        <button class="btn btn-primary btn-small add-entry-btn" onclick="addNewEntry('biography')">添加条目</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div><span class="info-label">身后事:</span></div>
+                    <div class="media-container">
+                        ${afterlifeHtml}
+                        <button class="btn btn-primary btn-small add-entry-btn" onclick="addNewEntry('afterlife')">添加条目</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div><span class="info-label">墓地:</span></div>
+                    <div class="media-container">
+                        ${graveHtml}
+                        <button class="btn btn-primary btn-small add-entry-btn" onclick="addNewEntry('graveLocation')">添加条目</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div><span class="info-label">电子陵墓空间:</span></div>
+                    <div>
+                        <button class="btn btn-info btn-small space-btn" onclick="enterTombSpace()">进入空间</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div><span class="info-label">虚拟世界:</span></div>
+                    <div>
+                        <button class="btn btn-info btn-small space-btn" onclick="enterVirtualWorld()">进入空间</button>
+                    </div>
+                </div>
+                <div class="add-node-form">
+                    <h3 style="margin-bottom: 15px; color: #333;">操作</h3>
+                    <button class="btn btn-primary btn-small" onclick="showAddChildModal()" style="margin-right: 10px;">添加子节点</button>
+                    <button class="btn btn-secondary btn-small" onclick="showEditModal()">编辑信息</button>
+                </div>
+            `;
+        }
+        // 辅助函数：根据字段内容生成包含条目的HTML
+        function generateEntryHtml(entries, fieldName, fieldTitle) {
+            if (!entries || entries.length === 0) {
+                return '<div class="info-value">暂无条目</div>';
+            }
+            let html = '';
+            entries.forEach((entry, index) => {
+                html += `<div class="entry-container" data-id="${entry.id}">`;
+                html += `<div class="entry-header">`;
+                html += `<input type="text" class="entry-title-input" value="${entry.title || ''}" placeholder="请输入标题" onchange="updateEntryTitle('${fieldName}', '${entry.id}', this.value)">`;
+                html += `<div class="entry-actions">`;
+                html += `<button class="btn btn-danger btn-small media-btn" onclick="deleteEntry('${fieldName}', '${entry.id}')">删除</button>`;
+                html += `</div>`;
+                html += `</div>`;
+                html += `<div class="entry-content">`;
+                html += `<textarea class="entry-text-input" placeholder="请输入文字内容" onchange="updateEntryText('${fieldName}', '${entry.id}', this.value)">${entry.text || ''}</textarea>`;
+                html += `<div class="media-actions" style="margin-top: 8px;">`;
+                html += `<button class="btn btn-primary btn-small media-btn" onclick="triggerMediaUpload('${fieldName}', '${entry.id}', 'add')">添加图片/音视频</button>`;
+                html += `</div>`;
+                if (entry.media && entry.media.length > 0) {
+                    html += `<div class="entry-media-preview">`;
+                    entry.media.forEach(mediaItem => {
+                        if (mediaItem.type === 'image') {
+                            html += `<img src="${mediaItem.content}" alt="图片" class="media-preview">`;
+                        } else if (mediaItem.type === 'video') {
+                            html += `<div class="video-container"><video controls><source src="${mediaItem.content}" type="video/mp4">您的浏览器不支持视频播放。</video></div>`;
+                        } else if (mediaItem.type === 'audio') {
+                            html += `<div class="audio-container"><audio controls src="${mediaItem.content}">您的浏览器不支持音频播放。</audio></div>`;
+                        }
+                        html += `
+                            <div class="media-actions" style="margin-top: 5px;">
+                                <button class="btn btn-warning btn-small media-btn" onclick="triggerMediaUpload('${fieldName}', '${entry.id}', 'replace', '${mediaItem.id}')">替换</button>
+                                <button class="btn btn-danger btn-small media-btn" onclick="deleteMediaItem('${fieldName}', '${entry.id}', '${mediaItem.id}')">删除</button>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+                html += `</div>`;
+                html += '</div>';
+            });
+            return html;
+        }
+        // 添加新条目
+        function addNewEntry(fieldName) {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            if (!selectedPerson[fieldName]) {
+                selectedPerson[fieldName] = [];
+            }
+            const newEntry = {
+                id: generateId(),
+                title: '',
+                text: '',
+                media: []
+            };
+            selectedPerson[fieldName].push(newEntry);
+            renderPersonInfo(selectedPerson);
+        }
+        // 更新条目标题
+        function updateEntryTitle(fieldName, entryId, title) {
+            if (!selectedPerson) return;
+            if (selectedPerson[fieldName] && Array.isArray(selectedPerson[fieldName])) {
+                const entry = selectedPerson[fieldName].find(e => e.id === entryId);
+                if (entry) {
+                    entry.title = title;
+                }
+            }
+        }
+        // 更新条目文字
+        function updateEntryText(fieldName, entryId, text) {
+            if (!selectedPerson) return;
+            if (selectedPerson[fieldName] && Array.isArray(selectedPerson[fieldName])) {
+                const entry = selectedPerson[fieldName].find(e => e.id === entryId);
+                if (entry) {
+                    entry.text = text;
+                }
+            }
+        }
+        // 删除条目
+        function deleteEntry(fieldName, entryId) {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            if (confirm('确定要删除此条目吗？')) {
+                if (selectedPerson[fieldName] && Array.isArray(selectedPerson[fieldName])) {
+                    const index = selectedPerson[fieldName].findIndex(entry => entry.id === entryId);
+                    if (index !== -1) {
+                        selectedPerson[fieldName].splice(index, 1);
+                        renderPersonInfo(selectedPerson);
+                    }
+                }
+            }
+        }
+        // 触发头像上传
+        function triggerAvatarUpload() {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            document.getElementById('avatarInput').click();
+        }
+        // 处理头像上传
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !selectedPerson) return;
+            if (!file.type.startsWith('image/')) {
+                alert('请选择图片文件！');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedPerson.avatarUrl = e.target.result;
+                renderPersonInfo(selectedPerson);
+                renderFamilyTree();
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+        // 替换头像
+        function replaceAvatar() {
+            triggerAvatarUpload();
+        }
+        // 删除头像
+        function deleteAvatar() {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            if (confirm('确定要删除头像吗？')) {
+                delete selectedPerson.avatarUrl;
+                renderPersonInfo(selectedPerson);
+                renderFamilyTree();
+            }
+        }
+        // 触发多媒体上传
+        function triggerMediaUpload(fieldName, entryId, action, mediaItemId = null) {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            currentMediaField = fieldName;
+            currentEntryId = entryId;
+            currentMediaAction = action;
+            currentMediaItemId = mediaItemId; // 仅在替换时有值
+            document.getElementById('mediaInput').click();
+        }
+        // 处理多媒体上传
+        function handleMediaUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !selectedPerson || !currentMediaField || !currentEntryId) return;
+            const fieldName = currentMediaField;
+            const entryId = currentEntryId;
+            const action = currentMediaAction;
+            const mediaItemId = currentMediaItemId;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileDataUrl = e.target.result;
+                // 确保字段存在且为数组
+                if (!selectedPerson[fieldName]) {
+                    selectedPerson[fieldName] = [];
+                } else if (!Array.isArray(selectedPerson[fieldName])) {
+                    // 如果之前是字符串，转换为数组
+                    selectedPerson[fieldName] = [{ id: generateId(), title: '', text: selectedPerson[fieldName], media: [] }];
+                }
+                // 找到对应的条目
+                const entry = selectedPerson[fieldName].find(e => e.id === entryId);
+                if (entry) {
+                    // 创建新的媒体项
+                    let newItem = null;
+                    if (file.type.startsWith('image/')) {
+                        newItem = { id: generateId(), type: 'image', content: fileDataUrl };
+                    } else if (file.type.startsWith('video/')) {
+                        newItem = { id: generateId(), type: 'video', content: fileDataUrl };
+                    } else if (file.type.startsWith('audio/')) {
+                        newItem = { id: generateId(), type: 'audio', content: fileDataUrl };
+                    } else {
+                        alert('不支持的文件类型！');
+                        return;
+                    }
+                    if (!entry.media) {
+                        entry.media = [];
+                    }
+                    if (action === 'replace' && mediaItemId) {
+                        // 替换现有项
+                        const index = entry.media.findIndex(item => item.id === mediaItemId);
+                        if (index !== -1) {
+                            entry.media[index] = newItem;
+                        }
+                    } else {
+                        // 添加新项
+                        entry.media.push(newItem);
+                    }
+                    renderPersonInfo(selectedPerson);
+                    renderFamilyTree();
+                }
+            };
+            if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+                reader.readAsDataURL(file);
+            } else {
+                alert('请选择图片、视频或音频文件！');
+            }
+            event.target.value = '';
+            currentMediaField = null;
+            currentEntryId = null;
+            currentMediaAction = null;
+            currentMediaItemId = null;
+        }
+        // 删除多媒体项
+        function deleteMediaItem(fieldName, entryId, mediaItemId) {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            if (confirm('确定要删除此项内容吗？')) {
+                if (selectedPerson[fieldName] && Array.isArray(selectedPerson[fieldName])) {
+                    const entry = selectedPerson[fieldName].find(e => e.id === entryId);
+                    if (entry && entry.media && Array.isArray(entry.media)) {
+                        const index = entry.media.findIndex(item => item.id === mediaItemId);
+                        if (index !== -1) {
+                            entry.media.splice(index, 1);
+                            renderPersonInfo(selectedPerson);
+                        }
+                    }
+                }
+            }
+        }
+        // 进入电子陵墓空间
+        function enterTombSpace() {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            alert(`进入 ${selectedPerson.name} 的电子陵墓空间`);
+            // 这里可以添加进入电子陵墓空间的具体逻辑
+        }
+        // 进入虚拟世界
+        function enterVirtualWorld() {
+            if (!selectedPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            alert(`进入 ${selectedPerson.name} 的虚拟世界`);
+            // 这里可以添加进入虚拟世界的具体逻辑
+        }
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        // 显示添加根节点模态框
+        function showAddRootModal() {
+            document.getElementById('addRootModal').style.display = 'block';
+            document.getElementById('rootName').value = '';
+            document.getElementById('rootGender').value = 'male';
+            document.getElementById('rootSpouseName').value = '';
+            document.getElementById('rootEthnicity').value = '';
+            document.getElementById('rootBirthDate').value = '';
+            document.getElementById('rootDeathDate').value = '';
+            // 不再需要初始化被移除的字段
+        }
+        // 显示添加父节点模态框
+        function showAddParentModal() {
+            if (!contextMenuPerson) {
+                alert('请右键点击一个节点！');
+                return;
+            }
+            document.getElementById('addParentModal').style.display = 'block';
+            document.getElementById('parentName').value = '';
+            document.getElementById('parentGender').value = 'male';
+            document.getElementById('parentSpouseName').value = '';
+            document.getElementById('parentEthnicity').value = '';
+            document.getElementById('parentBirthDate').value = '';
+            document.getElementById('parentDeathDate').value = '';
+            // 不再需要初始化被移除的字段
+        }
+        // 显示添加子节点模态框
+        function showAddChildModal() {
+            if (!selectedPerson && !contextMenuPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const person = selectedPerson || contextMenuPerson;
+            document.getElementById('addChildModal').style.display = 'block';
+            document.getElementById('childName').value = '';
+            document.getElementById('childGender').value = 'male';
+            document.getElementById('childSpouseName').value = '';
+            document.getElementById('childEthnicity').value = '';
+            document.getElementById('childBirthDate').value = '';
+            document.getElementById('childDeathDate').value = '';
+        }
+        // 显示添加配偶模态框
+        function showAddSpouseModal() {
+            if (!selectedPerson && !contextMenuPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const person = selectedPerson || contextMenuPerson;
+            document.getElementById('addSpouseModal').style.display = 'block';
+            document.getElementById('spouseName').value = '';
+            document.getElementById('spouseGender').value = 'female';
+            if (person.gender === 'male') {
+                document.getElementById('spouseGender').value = 'female';
+            } else {
+                document.getElementById('spouseGender').value = 'male';
+            }
+            document.getElementById('spouseEthnicity').value = '';
+            document.getElementById('spouseBirthDate').value = '';
+            document.getElementById('spouseDeathDate').value = '';
+            document.getElementById('spouseBiography').value = '';
+            document.getElementById('spouseAfterlife').value = '';
+            document.getElementById('spouseGraveLocation').value = '';
+        }
+        // 显示编辑节点模态框
+        function showEditModal() {
+            if (!selectedPerson && !contextMenuPerson) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const person = selectedPerson || contextMenuPerson;
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editName').value = person.name;
+            document.getElementById('editGender').value = person.gender;
+            document.getElementById('editSpouseName').value = person.spouseName || '';
+            document.getElementById('editEthnicity').value = person.ethnicity || '';
+            document.getElementById('editBirthDate').value = person.birthDate || '';
+            document.getElementById('editDeathDate').value = person.deathDate || '';
+        }
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        // 添加根节点 (精简版)
+        function addRootNode() {
+            const name = document.getElementById('rootName').value.trim();
+            if (!name) {
+                alert('请输入姓名！');
+                return;
+            }
+            // 不再处理被移除的字段
+            const rootNode = {
+                id: nextId++,
+                name: name,
+                gender: document.getElementById('rootGender').value,
+                spouseName: document.getElementById('rootSpouseName').value.trim(),
+                ethnicity: document.getElementById('rootEthnicity').value.trim(),
+                birthDate: document.getElementById('rootBirthDate').value,
+                deathDate: document.getElementById('rootDeathDate').value,
+                // 精简版不包含这些字段
+                biography: [],
+                afterlife: [],
+                graveLocation: [],
+                parentId: null,
+                children: []
+            };
+            familyTree.push(rootNode);
+            renderFamilyTree();
+            closeModal('addRootModal');
+        }
+        // 添加父节点 (精简版)
+        function addParentNode() {
+            if (!contextMenuPerson) {
+                alert('请右键点击一个节点！');
+                return;
+            }
+            const name = document.getElementById('parentName').value.trim();
+            if (!name) {
+                alert('请输入姓名！');
+                return;
+            }
+            const parentNode = {
+                id: nextId++,
+                name: name,
+                gender: document.getElementById('parentGender').value,
+                spouseName: document.getElementById('parentSpouseName').value.trim(),
+                ethnicity: document.getElementById('parentEthnicity').value.trim(),
+                birthDate: document.getElementById('parentBirthDate').value,
+                deathDate: document.getElementById('parentDeathDate').value,
+                // 精简版不包含这些字段
+                biography: [],
+                afterlife: [],
+                graveLocation: [],
+                parentId: null,
+                children: [contextMenuPerson.id]
+            };
+            contextMenuPerson.parentId = parentNode.id;
+            familyTree.push(parentNode);
+            renderFamilyTree();
+            closeModal('addParentModal');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        // 添加子节点 (精简版)
+        function addChildNode() {
+            const person = selectedPerson || contextMenuPerson;
+            if (!person) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const name = document.getElementById('childName').value.trim();
+            if (!name) {
+                alert('请输入姓名！');
+                return;
+            }
+            const childNode = {
+                id: nextId++,
+                name: name,
+                gender: document.getElementById('childGender').value,
+                spouseName: document.getElementById('childSpouseName').value.trim(),
+                ethnicity: document.getElementById('childEthnicity').value.trim(),
+                birthDate: document.getElementById('childBirthDate').value,
+                deathDate: document.getElementById('childDeathDate').value,
+                // 精简版不包含这些字段
+                biography: [],
+                afterlife: [],
+                graveLocation: [],
+                parentId: person.id,
+                children: []
+            };
+            familyTree.push(childNode);
+            renderFamilyTree();
+            closeModal('addChildModal');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        // 添加配偶节点 (完整版)
+        function addSpouseNode() {
+            const person = selectedPerson || contextMenuPerson;
+            if (!person) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const name = document.getElementById('spouseName').value.trim();
+            if (!name) {
+                alert('请输入姓名！');
+                return;
+            }
+            const biographyText = document.getElementById('spouseBiography').value.trim();
+            const afterlifeText = document.getElementById('spouseAfterlife').value.trim();
+            const graveLocationText = document.getElementById('spouseGraveLocation').value.trim();
+            const spouseNode = {
+                id: nextId++,
+                name: name,
+                gender: document.getElementById('spouseGender').value,
+                ethnicity: document.getElementById('spouseEthnicity').value.trim(),
+                birthDate: document.getElementById('spouseBirthDate').value,
+                deathDate: document.getElementById('spouseDeathDate').value,
+                biography: biographyText ? [{ id: generateId(), title: '', text: biographyText, media: [] }] : [],
+                afterlife: afterlifeText ? [{ id: generateId(), title: '', text: afterlifeText, media: [] }] : [],
+                graveLocation: graveLocationText ? [{ id: generateId(), title: '', text: graveLocationText, media: [] }] : [],
+                parentId: null,
+                children: []
+            };
+            familyTree.push(spouseNode);
+            person.spouseName = name;
+            renderFamilyTree();
+            if (selectedPerson) {
+                renderPersonInfo(selectedPerson);
+            }
+            closeModal('addSpouseModal');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        // 编辑节点 (精简版)
+        function editNode() {
+            const person = selectedPerson || contextMenuPerson;
+            if (!person) {
+                alert('请先选择一个人员！');
+                return;
+            }
+            const name = document.getElementById('editName').value.trim();
+            if (!name) {
+                alert('请输入姓名！');
+                return;
+            }
+            person.name = name;
+            person.gender = document.getElementById('editGender').value;
+            person.spouseName = document.getElementById('editSpouseName').value.trim();
+            person.ethnicity = document.getElementById('editEthnicity').value.trim();
+            person.birthDate = document.getElementById('editBirthDate').value;
+            person.deathDate = document.getElementById('editDeathDate').value;
+            // 精简版不处理 biography, afterlife, graveLocation 字段的编辑
+            renderFamilyTree();
+            if (selectedPerson) {
+                renderPersonInfo(selectedPerson);
+            }
+            closeModal('editModal');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        // 删除节点
+        function deleteNode() {
+            if (!contextMenuPerson) {
+                alert('请右键点击一个节点！');
+                return;
+            }
+            if (confirm(`确定要删除 "${contextMenuPerson.name}" 含其所有后代吗？此操作不可恢复！`)) {
+                function deleteNodeAndChildren(nodeId) {
+                    const node = familyTree.find(p => p.id === nodeId);
+                    if (node) {
+                        if (node.children && node.children.length > 0) {
+                            node.children.forEach(childId => {
+                                deleteNodeAndChildren(childId);
+                            });
+                        }
+                        const index = familyTree.findIndex(p => p.id === nodeId);
+                        if (index !== -1) {
+                            familyTree.splice(index, 1);
+                        }
+                    }
+                }
+                deleteNodeAndChildren(contextMenuPerson.id);
+                if (selectedPerson && selectedPerson.id === contextMenuPerson.id) {
+                    selectedPerson = null;
+                    document.getElementById('personInfo').innerHTML = '<div class="no-data">请选择族谱中的人员查看详细信息</div>';
+                }
+                renderFamilyTree();
+            }
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        // 清除族谱
+        function clearFamilyTree() {
+            if (confirm('确定要清除整个族谱吗？此操作不可恢复！')) {
+                familyTree = [];
+                selectedPerson = null;
+                generationInfo = {}; // 同时清除代数信息
+                renderFamilyTree();
+                document.getElementById('personInfo').innerHTML = '<div class="no-data">请选择族谱中的人员查看详细信息</div>';
+            }
+        }
+        // 保存族谱到本地存储
+        function saveFamilyTree() {
+            if (familyTree.length === 0) {
+                alert('族谱为空，无需保存！');
+                return;
+            }
+            try {
+                const dataToSave = {
+                    familyTree: familyTree,
+                    generationInfo: generationInfo
+                };
+                localStorage.setItem('familyTreeData', JSON.stringify(dataToSave));
+                alert('族谱保存成功！');
+            } catch (e) {
+                alert('保存失败：' + e.message);
+            }
+        }
+        // 从本地存储加载族谱
+        function loadFamilyTreeFromStorage() {
+            try {
+                const savedData = localStorage.getItem('familyTreeData');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    familyTree = parsedData.familyTree || [];
+                    generationInfo = parsedData.generationInfo || {};
+                    nextId = Math.max(...familyTree.map(p => p.id), 0) + 1;
+                    renderFamilyTree();
+                    alert('族谱加载成功！');
+                } else {
+                    alert('没有找到保存的族谱数据！');
+                }
+            } catch (e) {
+                alert('加载失败：' + e.message);
+            }
+        }
+        // 导出族谱为ZIP文件
+        async function exportFamilyTree() {
+            if (familyTree.length === 0) {
+                alert('族谱为空，无法导出！');
+                return;
+            }
+            try {
+                // 1. 创建一个新的 JSZip 实例
+                const zip = new JSZip();
+                // 2. 准备族谱数据 JSON
+                const exportData = {
+                    familyTree: familyTree.map(person => {
+                        // 创建一个不包含多媒体内容的副本
+                        const personData = {...person};
+                        // 移除头像 URL 以避免混淆（因为我们将在 zip 中单独存储文件）
+                        // delete personData.avatarUrl;
+                        // 可以选择保留 URL，或者在导入时重新构建
+                        return personData;
+                    }),
+                    generationInfo: generationInfo
+                };
+                // 3. 将族谱数据添加到 zip
+                zip.file("familyTree.json", JSON.stringify(exportData, null, 2));
+                // 4. 收集所有需要存储的媒体文件 (Base64 Data URLs)
+                const mediaFilesToInclude = new Set(); // 使用 Set 避免重复
+                familyTree.forEach(person => {
+                    // 头像
+                    if (person.avatarUrl && person.avatarUrl.startsWith('data:')) {
+                         // 从 Data URL 提取 Base64 数据和文件扩展名
+                        const matches = person.avatarUrl.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+                        if (matches && matches[2]) {
+                            const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1]; // 标准化 jpg
+                            const base64Data = matches[2];
+                            const filename = `media/avatar_${person.id}.${ext}`;
+                            mediaFilesToInclude.add({filename, base64Data});
+                            // 更新 JSON 中的引用为相对路径
+                            person.avatarUrl = filename;
+                        }
+                    }
+                    // 条目中的媒体
+                    ['biography', 'afterlife', 'graveLocation'].forEach(field => {
+                        if (person[field] && Array.isArray(person[field])) {
+                            person[field].forEach(entry => {
+                                if (entry.media && Array.isArray(entry.media)) {
+                                    entry.media.forEach(mediaItem => {
+                                        if (mediaItem.content && mediaItem.content.startsWith('data:')) {
+                                            let ext = 'bin'; // 默认扩展名
+                                            let base64Data = '';
+                                            if (mediaItem.type === 'image') {
+                                                const matches = mediaItem.content.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+                                                if (matches) {
+                                                    ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+                                                    base64Data = matches[2];
+                                                }
+                                            } else if (mediaItem.type === 'video') {
+                                                const matches = mediaItem.content.match(/^data:video\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+                                                if (matches) {
+                                                    // 简化扩展名，实际可能需要更复杂的映射
+                                                    ext = matches[1].split('/')[0] || 'mp4';
+                                                    base64Data = matches[2];
+                                                }
+                                            } else if (mediaItem.type === 'audio') {
+                                                const matches = mediaItem.content.match(/^data:audio\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+                                                if (matches) {
+                                                    ext = matches[1].split('/')[0] || 'mp3';
+                                                    base64Data = matches[2];
+                                                }
+                                            }
+                                            if (base64Data) {
+                                                const filename = `media/${field}_${entry.id}_${mediaItem.id}.${ext}`;
+                                                mediaFilesToInclude.add({filename, base64Data});
+                                                // 更新 JSON 中的引用为相对路径
+                                                mediaItem.content = filename;
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+                // 5. 将收集到的媒体文件添加到 zip
+                mediaFilesToInclude.forEach(fileObj => {
+                    zip.file(fileObj.filename, fileObj.base64Data, {base64: true});
+                });
+                // 6. 生成 zip 文件并触发下载
+                const content = await zip.generateAsync({type: "blob"});
+                const url = URL.createObjectURL(content);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '族谱数据.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                alert('族谱导出成功！');
+            } catch (error) {
+                console.error("导出失败:", error);
+                alert('导出失败：' + error.message);
+            }
+        }
+        // 导入族谱
+        function importFamilyTree() {
+            // 显示导入提示
+            const hint = document.createElement('div');
+            hint.className = 'import-hint';
+            hint.innerHTML = `
+                <p><strong>导入说明：</strong></p>
+                <p>请上传通过本系统<strong>导出</strong>的 <strong>.zip</strong> 文件。</p>
+                <p>该文件应包含族谱数据 (familyTree.json) 和相关的多媒体文件。</p>
+            `;
+            // 将提示插入到导入按钮旁边或下方
+            const importBtn = document.querySelector('.btn-warning[onclick="importFamilyTree()"]');
+            if (importBtn) {
+                importBtn.parentNode.insertBefore(hint, importBtn.nextSibling);
+                // 几秒后自动移除提示
+                setTimeout(() => {
+                    if (hint.parentNode) {
+                        hint.parentNode.removeChild(hint);
+                    }
+                }, 10000); // 10秒后移除
+            }
+            document.getElementById('fileInput').click();
+        }
+        // 处理文件导入
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.name.endsWith('.zip')) {
+                alert('请选择一个 .zip 文件!');
+                event.target.value = ''; // 清空 input
+                return;
+            }
+            try {
+                // 1. 使用 JSZip 读取文件
+                const zip = new JSZip();
+                const zipContent = await zip.loadAsync(file);
+                // 2. 读取族谱数据 JSON
+                const jsonDataFile = zipContent.file("familyTree.json");
+                if (!jsonDataFile) {
+                    throw new Error('ZIP 文件中未找到 familyTree.json');
+                }
+                const jsonDataString = await jsonDataFile.async("string");
+                const importedData = JSON.parse(jsonDataString);
+                
+                // 3. 恢复族谱数据
+                familyTree = importedData.familyTree || [];
+                generationInfo = importedData.generationInfo || {};
+                
+                // 4. 读取媒体文件并重建 Data URLs
+                const mediaFiles = {};
+                const mediaFolder = zipContent.folder("media");
+                if (mediaFolder) {
+                    const mediaFileList = Object.values(mediaFolder.files);
+                    for (const mediaFile of mediaFileList) {
+                        if (!mediaFile.dir) { // 确保不是文件夹
+                            const relativePath = mediaFile.name;
+                            // 猜测 MIME 类型 (可以根据扩展名更精确地做)
+                            let mimeType = 'application/octet-stream';
+                            if (relativePath.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
+                                const ext = relativePath.split('.').pop().toLowerCase();
+                                mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+                            } else if (relativePath.match(/\.(mp4|webm|ogg|avi)$/i)) {
+                                mimeType = 'video/mp4'; // 简化处理
+                            } else if (relativePath.match(/\.(mp3|wav|ogg)$/i)) {
+                                mimeType = 'audio/mpeg'; // 简化处理
+                            }
+                            const base64Data = await mediaFile.async("base64");
+                            const dataUrl = `data:${mimeType};base64,${base64Data}`;
+                            mediaFiles[relativePath] = dataUrl;
+                        }
+                    }
+                }
+                // 5. 将导入的数据和重建的媒体 URL 合并到主族谱数据中
+                // 首先更新 nextId 以避免 ID 冲突
+                const maxIdInImport = Math.max(...familyTree.map(p => p.id), 0);
+                nextId = Math.max(nextId, maxIdInImport + 1);
+                // 然后将导入的数据合并到现有族谱中
+                // 这里采用简单替换的方式，实际应用中可能需要更复杂的合并逻辑
+                familyTree = familyTree.map(person => {
+                    // 恢复头像 URL
+                    if (person.avatarUrl && mediaFiles[person.avatarUrl]) {
+                        person.avatarUrl = mediaFiles[person.avatarUrl];
+                    }
+                    // 恢复条目中的媒体 URL
+                    ['biography', 'afterlife', 'graveLocation'].forEach(field => {
+                        if (person[field] && Array.isArray(person[field])) {
+                            person[field].forEach(entry => {
+                                if (entry.media && Array.isArray(entry.media)) {
+                                    entry.media.forEach(mediaItem => {
+                                        if (mediaItem.content && mediaFiles[mediaItem.content]) {
+                                            mediaItem.content = mediaFiles[mediaItem.content];
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    return person;
+                });
+                renderFamilyTree();
+                alert('族谱导入成功！');
+            } catch (error) {
+                console.error("导入失败:", error);
+                alert('导入失败：' + error.message);
+            } finally {
+                event.target.value = ''; // 清空 input
+            }
+        }
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+        // 页面加载完成后初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
